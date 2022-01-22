@@ -1,14 +1,18 @@
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/s0a1qq/booking-mess/pkg/config"
-	"github.com/s0a1qq/booking-mess/pkg/handlers"
-	"github.com/s0a1qq/booking-mess/pkg/render"
+	"github.com/s0a1qq/booking-mess/internal/models"
+
+	"github.com/s0a1qq/booking-mess/internal/config"
+	"github.com/s0a1qq/booking-mess/internal/handlers"
+	"github.com/s0a1qq/booking-mess/internal/render"
 
 	"github.com/alexedwards/scs/v2"
 )
@@ -20,6 +24,9 @@ var session *scs.SessionManager
 
 // main is the main function
 func main() {
+
+	// session storage
+	gob.Register(models.Reservation{})
 
 	//change this to true in production
 	app.InProduction = false
@@ -55,5 +62,18 @@ func main() {
 	err = srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func printMap(m map[string]string) {
+	var maxLenKey int
+	for k, _ := range m {
+		if len(k) > maxLenKey {
+			maxLenKey = len(k)
+		}
+	}
+
+	for k, v := range m {
+		fmt.Println(k + ": " + strings.Repeat(" ", maxLenKey-len(k)) + v)
 	}
 }
