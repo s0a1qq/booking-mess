@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/s0a1qq/booking-mess/internal/models"
@@ -24,6 +23,25 @@ var session *scs.SessionManager
 
 // main is the main function
 func main() {
+	err := run()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Staring application on port %s\n", portNumber)
+
+	srv := &http.Server{
+		Addr:    portNumber,
+		Handler: routes(&app),
+	}
+
+	err = srv.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 
 	// session storage
 	gob.Register(models.Reservation{})
@@ -42,6 +60,7 @@ func main() {
 	tc, err := render.CreateTemplateCache()
 	if err != nil {
 		log.Fatal("cannot create template cache")
+		return err
 	}
 
 	app.TemplateCache = tc
@@ -52,28 +71,5 @@ func main() {
 
 	render.NewTemplates(&app)
 
-	fmt.Printf("Staring application on port %s\n", portNumber)
-
-	srv := &http.Server{
-		Addr:    portNumber,
-		Handler: routes(&app),
-	}
-
-	err = srv.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func printMap(m map[string]string) {
-	var maxLenKey int
-	for k, _ := range m {
-		if len(k) > maxLenKey {
-			maxLenKey = len(k)
-		}
-	}
-
-	for k, v := range m {
-		fmt.Println(k + ": " + strings.Repeat(" ", maxLenKey-len(k)) + v)
-	}
+	return nil
 }
