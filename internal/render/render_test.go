@@ -23,6 +23,33 @@ func TestAddDefaultData(t *testing.T) {
 	}
 }
 
+func TestRenderTempale(t *testing.T) {
+	pathToTemplates = "./../../templates"
+
+	tc, err := CreateTemplateCache()
+	if err != nil {
+		t.Error(err)
+	}
+
+	app.TemplateCache = tc
+
+	r, err := getSession()
+	if err != nil {
+		t.Error(err)
+	}
+
+	var ww testResponseWriter
+	err = RenderTemplate(&ww, r, "home.page.tmpl", &models.TemplateData{})
+	if err != nil {
+		t.Error("error writing tmpl to browser")
+	}
+
+	err = RenderTemplate(&ww, r, "non-existit.tmpl", &models.TemplateData{})
+	if err == nil {
+		t.Error("write non-existit tmpl to browser")
+	}
+}
+
 func getSession() (*http.Request, error) {
 	r, err := http.NewRequest("GET", "/url", nil)
 	if err != nil {
@@ -34,4 +61,18 @@ func getSession() (*http.Request, error) {
 	r = r.WithContext(ctx)
 
 	return r, nil
+}
+
+func TestNewTemplates(t *testing.T) {
+	NewTemplates(app)
+}
+
+func TestCreateTemplateCache(t *testing.T) {
+	pathToTemplates = "./../../templates"
+
+	_, err := CreateTemplateCache()
+
+	if err != nil {
+		t.Error(err)
+	}
 }
