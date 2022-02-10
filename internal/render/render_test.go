@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/justinas/nosurf"
 	"github.com/s0a1qq/booking-mess/internal/models"
 )
 
@@ -22,11 +21,6 @@ func TestAddDefaultData(t *testing.T) {
 	if result.Flash != "123" {
 		t.Error("flash value is not 123")
 	}
-
-	td.Flash = app.Session.PopString(r.Context(), "flash")
-	td.Error = app.Session.PopString(r.Context(), "error")
-	td.Warning = app.Session.PopString(r.Context(), "warning")
-	td.CSRFToken = nosurf.Token(r)
 }
 
 func getSession() (*http.Request, error) {
