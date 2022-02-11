@@ -59,12 +59,24 @@ func TestForm_MinLength(t *testing.T) {
 
 	form := New(postedData)
 
-	if !form.MinLength("a", 1) {
+	form.MinLength("a", 1)
+	isError := form.Errors.Get("a")
+	if !form.Valid() {
 		t.Error("form shows that MinLength isn't correct when it is")
 	}
 
-	if form.MinLength("a", 3) {
+	if isError != "" {
+		t.Error("form shows that MinLength isn't has error")
+	}
+
+	form.MinLength("a", 3)
+	isError = form.Errors.Get("a")
+	if form.Valid() {
 		t.Error("form shows that MinLength correct when it isn't")
+	}
+
+	if isError == "" {
+		t.Error("form shows that MinLength is has error")
 	}
 }
 
