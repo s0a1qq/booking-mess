@@ -48,6 +48,7 @@ func TestRenderTempale(t *testing.T) {
 	if err == nil {
 		t.Error("write non-existit tmpl to browser")
 	}
+
 }
 
 func getSession() (*http.Request, error) {
