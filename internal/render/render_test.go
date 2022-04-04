@@ -39,12 +39,12 @@ func TestRenderTempale(t *testing.T) {
 	}
 
 	var ww testResponseWriter
-	err = RenderTemplate(&ww, r, "home.page.tmpl", &models.TemplateData{})
+	err = Template(&ww, r, "home.page.tmpl", &models.TemplateData{})
 	if err != nil {
 		t.Error("error writing tmpl to browser")
 	}
 
-	err = RenderTemplate(&ww, r, "non-existit.tmpl", &models.TemplateData{})
+	err = Template(&ww, r, "non-existit.tmpl", &models.TemplateData{})
 	if err == nil {
 		t.Error("write non-existit tmpl to browser")
 	}
