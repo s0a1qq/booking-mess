@@ -16,7 +16,7 @@ func NewHelpers(a *config.AppConfig) {
 }
 
 func ClientError(w http.ResponseWriter, status int) {
-	app.InfoLog.Panicln("ClientError with status off", status)
+	app.InfoLog.Println("ClientError with status off", status)
 	http.Error(w, http.StatusText(status), status)
 }
 

@@ -131,8 +131,8 @@ func (m *postgresDBRepo) SearchAvailabilityByDatesForAllRooms(start, end time.Ti
 	`
 
 	rows, err := m.DB.QueryContext(cts, query,
-		end,
 		start,
+		end,
 	)
 	if err != nil {
 		return rooms, err
