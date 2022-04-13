@@ -2,3 +2,4 @@
 .vscode
 run.exe
 database.yml
+testcover.out

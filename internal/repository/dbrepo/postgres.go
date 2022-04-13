@@ -28,7 +28,7 @@ func (m *postgresDBRepo) InsertReservation(res models.Reservation) (int, error) 
 		res.LastName,
 		res.Email,
 		res.Phone,
-		res.StardDate,
+		res.StartDate,
 		res.EndDate,
 		res.RoomID,
 		time.Now(),
@@ -55,7 +55,7 @@ func (m *postgresDBRepo) InsertRoomRestriction(r models.RoomRestriction) (int, e
 	values ($1, $2, $3, $4, $5, $6, $7) returning id`
 
 	err := m.DB.QueryRowContext(cts, stmt,
-		r.StardDate,
+		r.StartDate,
 		r.EndDate,
 		r.RoomID,
 		r.ReservationID,

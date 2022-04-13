@@ -1,0 +1,1 @@
+go test -coverprofile="testcover.out" ./... && go tool cover -html="testcover.out"
