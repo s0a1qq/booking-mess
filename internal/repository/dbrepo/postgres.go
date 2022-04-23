@@ -105,8 +105,8 @@ func (m *postgresDBRepo) SearchAvailabilityByDatesByRoomID(start, end time.Time,
 	return false, nil
 }
 
-// SearchAvailabilityByDatesForAllRooms return a slive of available rooms if any, for given date range
-func (m *postgresDBRepo) SearchAvailabilityByDatesForAllRooms(start, end time.Time) ([]models.Room, error) {
+// SearchAvailabilityForAllRooms return a slive of available rooms if any, for given date range
+func (m *postgresDBRepo) SearchAvailabilityForAllRooms(start, end time.Time) ([]models.Room, error) {
 
 	cts, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

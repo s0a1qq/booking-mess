@@ -103,11 +103,3 @@ func (m *testDBRepo) GetRoomByID(id int) (models.Room, error) {
 	}
 	return room, nil
 }
-
-//SearchAvailabilityByDatesForAllRooms
-func (m *testDBRepo) SearchAvailabilityByDatesForAllRooms(start, end time.Time) ([]models.Room, error) {
-
-	var rooms []models.Room
-
-	return rooms, nil
-}

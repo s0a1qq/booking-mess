@@ -2,16 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/go-chi/chi"
 	"github.com/s0a1qq/booking-mess/internal/config"
 	"github.com/s0a1qq/booking-mess/internal/driver"
 	"github.com/s0a1qq/booking-mess/internal/forms"
-	"github.com/s0a1qq/booking-mess/internal/helpers"
 	"github.com/s0a1qq/booking-mess/internal/models"
 	"github.com/s0a1qq/booking-mess/internal/render"
 	"github.com/s0a1qq/booking-mess/internal/repository"
@@ -207,24 +205,34 @@ func (m *Repository) Availability(w http.ResponseWriter, r *http.Request) {
 
 // Availability renders the search availability page
 func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "can't parse form!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
 	start := r.Form.Get("start")
 	end := r.Form.Get("end")
 	layout := "2006-01-02"
 
 	startDate, err := time.Parse(layout, start)
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.App.Session.Put(r.Context(), "error", "can't parse start date")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 	endDate, err := time.Parse(layout, end)
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.App.Session.Put(r.Context(), "error", "can't parse end date")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
-	rooms, err := m.DB.SearchAvailabilityByDatesForAllRooms(startDate, endDate)
+	rooms, err := m.DB.SearchAvailabilityForAllRooms(startDate, endDate)
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.App.Session.Put(r.Context(), "error", "can't search availability!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -260,48 +268,56 @@ type jsonResponse struct {
 
 // AvailabilityJSON handles request for availlability and send JSON response
 func (m *Repository) AvailabilityJSON(w http.ResponseWriter, r *http.Request) {
-	roomID, _ := strconv.Atoi(r.Form.Get("room_id"))
+	// need to parse request body
+	err := r.ParseForm()
+	if err != nil {
+		// can't parse form, so return appropriate json
+		resp := jsonResponse{
+			OK:      false,
+			Message: "Internal server error",
+		}
+
+		out, _ := json.MarshalIndent(resp, "", "     ")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(out)
+		return
+	}
 
 	sd := r.Form.Get("start")
 	ed := r.Form.Get("end")
 
 	layout := "2006-01-02"
+	startDate, _ := time.Parse(layout, sd)
+	endDate, _ := time.Parse(layout, ed)
 
-	startDate, err := time.Parse(layout, sd)
-
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
-
-	endDate, err := time.Parse(layout, ed)
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
+	roomID, _ := strconv.Atoi(r.Form.Get("room_id"))
 
 	available, err := m.DB.SearchAvailabilityByDatesByRoomID(startDate, endDate, roomID)
 	if err != nil {
-		helpers.ServerError(w, err)
+		// got a database error, so return appropriate json
+		resp := jsonResponse{
+			OK:      false,
+			Message: "Error querying database",
+		}
+
+		out, _ := json.MarshalIndent(resp, "", "     ")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(out)
 		return
 	}
-
 	resp := jsonResponse{
 		OK:        available,
 		Message:   "",
-		RoomID:    strconv.Itoa(roomID),
 		StartDate: sd,
 		EndDate:   ed,
+		RoomID:    strconv.Itoa(roomID),
 	}
 
-	out, err := json.MarshalIndent(resp, "", "     ")
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
+	out, _ := json.MarshalIndent(resp, "", "     ")
 
-	w.Header().Set("Content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
+
 }
 
 // Contact renders the contact page
@@ -339,15 +355,18 @@ func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) 
 
 // ChooseRoom put params is session and redirect to make reservation page
 func (m *Repository) ChooseRoom(w http.ResponseWriter, r *http.Request) {
-	roomID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	exploded := strings.Split(r.RequestURI, "/")
+	roomID, err := strconv.Atoi(exploded[2])
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.App.Session.Put(r.Context(), "error", "missing url parameter")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
 	res, ok := m.App.Session.Get(r.Context(), "reservation").(models.Reservation)
 	if !ok {
-		helpers.ServerError(w, errors.New("chooseRoom: assertion to models.Reservation failed"))
+		m.App.Session.Put(r.Context(), "error", "Can't get reservation from session")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -360,51 +379,27 @@ func (m *Repository) ChooseRoom(w http.ResponseWriter, r *http.Request) {
 
 //BookRoom put URL parametrs in session, redirect to reservation page
 func (m *Repository) BookRoom(w http.ResponseWriter, r *http.Request) {
-	ID, err := strconv.Atoi(r.URL.Query().Get("id"))
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
-
+	roomID, _ := strconv.Atoi(r.URL.Query().Get("id"))
 	sd := r.URL.Query().Get("s")
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
-
 	ed := r.URL.Query().Get("e")
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
 
 	layout := "2006-01-02"
+	startDate, _ := time.Parse(layout, sd)
+	endDate, _ := time.Parse(layout, ed)
 
-	startDate, err := time.Parse(layout, sd)
+	var res models.Reservation
 
+	room, err := m.DB.GetRoomByID(roomID)
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.App.Session.Put(r.Context(), "error", "Can't get room from db!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
-	endDate, err := time.Parse(layout, ed)
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
-
-	room, err := m.DB.GetRoomByID(ID)
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
-
-	res := models.Reservation{
-		StartDate: startDate,
-		EndDate:   endDate,
-		RoomID:    ID,
-		Room:      room,
-	}
+	res.Room.RoomName = room.RoomName
+	res.RoomID = roomID
+	res.StartDate = startDate
+	res.EndDate = endDate
 
 	m.App.Session.Put(r.Context(), "reservation", res)
 
